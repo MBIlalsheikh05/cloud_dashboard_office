@@ -1,229 +1,350 @@
-// src/app/components/logs/LogsTable.tsx
-
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
-import { Card, CardContent } from "@/components/ui/card";
-import { Eye, EyeOff, ChevronDown, Filter } from "lucide-react";
+import {
+  Select,
+  SelectTrigger,
+  SelectContent,
+  SelectItem,
+  SelectValue,
+} from "@/components/ui/select";
 
-// Example dummy data - Replace with API call later
-const TABLE_DATA = Array.from({ length: 20 }).map((_, i) => ({
-  id: i + 1,
-  name: `User ${i + 1}`,
-  status: i % 2 === 0 ? "Active" : "Inactive",
-  createdAt: `2025-01-${(i % 30) + 1}`,
-  email: `user${i + 1}@example.com`,
-  role: i % 3 === 0 ? "Admin" : "Member",
-  phone: "0300-1234567",
-  address: `Street No ${(i % 10) + 1}, City XYZ`,
-  eventType: i % 3 === 0 ? "Login" : i % 2 === 0 ? "Update" : "Delete",
-  ipAddress: `192.168.1.${i + 1}`,
-  browser: i % 2 === 0 ? "Chrome" : "Firefox",
-  device: i % 3 === 0 ? "Mobile" : "Desktop",
-  logs: `This is detailed log information for user ${i + 1}`,
-}));
+import { Card, CardContent } from "@/components/ui/card";
+import { Eye, EyeOff, Filter, Settings } from "lucide-react";
+
+// 🔵 Updated — All columns from sample data
+const DEFAULT_COLUMNS = [
+  { key: "@timestamp", label: "Timestamp" },
+  { key: "service", label: "Service" },
+  { key: "environment", label: "Environment" },
+  { key: "request_id", label: "Request ID" },
+  { key: "endpoint", label: "Endpoint" },
+  { key: "method", label: "Method" },
+  { key: "status_code", label: "Status" },
+  { key: "status_family", label: "Status Family" },
+  { key: "outcome", label: "Outcome" },
+  { key: "duration_ms", label: "Duration (ms)" },
+  { key: "latency_bucket", label: "Latency Bucket" },
+  { key: "customer_name", label: "Customer" },
+  { key: "license_key", label: "License Key" },
+  { key: "user", label: "User" },
+  { key: "ip", label: "IP" },
+  { key: "module", label: "Module" },
+  { key: "creation_time", label: "Creation Time" },
+  { key: "ending_time", label: "Ending Time" },
+  { key: "full_request", label: "Full Request" },
+  { key: "headers", label: "Headers" },
+  { key: "body", label: "Body" },
+  { key: "data_found", label: "Data Found" },
+  { key: "hits_count", label: "Hits Count" },
+  { key: "request_size_bytes", label: "Request Size" },
+  { key: "response_size_bytes", label: "Response Size" },
+  { key: "error_class", label: "Error Class" },
+  { key: "error_message", label: "Error Message" },
+  { key: "exception_stack", label: "Exception Stack" },
+  { key: "masked", label: "Masked" },
+  { key: "request", label: "Request" },
+  { key: "cache_event", label: "Cache Event" },
+];
+
+// Long fields to truncate
+const LONG_COLUMNS = [
+  "full_request",
+  "headers",
+  "error_message",
+  "exception_stack",
+  "request",
+  "body",
+];
+
 
 export function LogsTable() {
+  const [tableData, setTableData] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [expandedRowId, setExpandedRowId] = useState<number | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 50;
 
-  const filteredData = useMemo(() => {
-    return TABLE_DATA.filter((row) => {
-      const matchesSearch = 
-        row.name.toLowerCase().includes(search.toLowerCase()) ||
-        row.email.toLowerCase().includes(search.toLowerCase()) ||
-        row.eventType.toLowerCase().includes(search.toLowerCase());
-      const matchesStatus = status === "all" || row.status === status;
-      return matchesSearch && matchesStatus;
+  // 🔵 Column config state
+  // const [selectedColumns, setSelectedColumns] = useState<string[]>(
+  //   DEFAULT_COLUMNS.map((c) => c.key)
+  // );
+
+      // Default 5 columns to show initially
+    const INITIAL_COLUMNS = ["@timestamp", "service", "method", "status_code", "customer_name"];
+
+    const [selectedColumns, setSelectedColumns] = useState<string[]>(() => {
+      // Load from localStorage if exists
+      if (typeof window !== "undefined") {
+        const stored = localStorage.getItem("selectedColumns");
+        if (stored) return JSON.parse(stored);
+      }
+      return INITIAL_COLUMNS;
     });
-  }, [search, status]);
+
+    // Save changes to localStorage whenever selectedColumns changes
+    useEffect(() => {
+      localStorage.setItem("selectedColumns", JSON.stringify(selectedColumns));
+    }, [selectedColumns]);
+
+
+
+
+
+  const [showColumnModal, setShowColumnModal] = useState(false);
+
+
+
+
+  // Fetch JSON
+  useEffect(() => {
+    fetch("/data/logs.json")
+      .then((res) => res.json())
+      .then((data) => setTableData(data))
+      .catch((err) => console.error("Error loading JSON:", err));
+  }, []);
+
+  // Filtering logic
+  const filteredData = useMemo(() => {
+    return tableData.filter((row) =>
+      JSON.stringify(row).toLowerCase().includes(search.toLowerCase())
+    );
+  }, [search, tableData]);
 
   const toggleRowExpansion = (rowId: number) => {
     setExpandedRowId(expandedRowId === rowId ? null : rowId);
   };
 
+  // Pagination
+  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+  const paginatedData = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return filteredData.slice(start, start + itemsPerPage);
+  }, [filteredData, currentPage]);
+
+  const nextPage = () => setCurrentPage((p) => Math.min(p + 1, totalPages));
+  const prevPage = () => setCurrentPage((p) => Math.max(p, 1));
+
   return (
     <div className="space-y-6">
       {/* Filters */}
-      <Card className="shadow-lg border-gray-200">
+      <Card className="bg-[#111827] shadow-md">
         <CardContent className="p-4">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-            <div className="md:col-span-5">
-              <Input
-                placeholder="Search by name, email, or event type..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full"
-              />
-            </div>
-            <div className="md:col-span-3">
-              <Select value={status} onValueChange={(v) => setStatus(v)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Filter by status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="Active">Active</SelectItem>
-                  <SelectItem value="Inactive">Inactive</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="md:col-span-4 flex gap-2">
-              <Button variant="outline" className="flex-1">
-                <Filter className="h-4 w-4 mr-2" />
-                Advanced Filters
-              </Button>
-              <Button variant="outline">Export</Button>
-            </div>
+          <div className="flex items-center justify-between gap-4">
+            <Input
+              placeholder="Search logs..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="max-w-sm bg-[#1F2937] text-gray-100 placeholder-gray-400 border border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded-md"
+            />
+
+            {/* Column Config Button */}
+            <Button
+              variant="default"
+              onClick={() => setShowColumnModal(true)}
+              className="flex gap-2 bg-blue-600 text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 rounded-md"
+            >
+              <Settings size={16} />
+              Columns
+            </Button>
           </div>
         </CardContent>
       </Card>
 
       {/* Table */}
-      <div className="overflow-auto rounded-xl shadow-lg border border-gray-200 bg-white">
+      <div className="overflow-auto border border-slate-800 rounded-xl bg-[#0b1120]">
         <table className="w-full text-left">
-          <thead className="bg-linear-to-r from-gray-100 to-gray-200">
+          <thead className="bg-[#151e33]">
             <tr>
-              <th className="p-4 text-sm font-semibold text-gray-700">ID</th>
-              <th className="p-4 text-sm font-semibold text-gray-700">Name</th>
-              <th className="p-4 text-sm font-semibold text-gray-700">Event Type</th>
-              <th className="p-4 text-sm font-semibold text-gray-700">Status</th>
-              <th className="p-4 text-sm font-semibold text-gray-700">Created At</th>
-              <th className="p-4 text-sm font-semibold text-gray-700">Actions</th>
+              {DEFAULT_COLUMNS.filter((c) => selectedColumns.includes(c.key)).map(
+                (col) => (
+                  <th key={col.key} className="p-3 text-white text-sm">
+                    {col.label}
+                  </th>
+                )
+              )}
+              <th className="p-3 text-white text-sm">Actions</th>
             </tr>
           </thead>
+
           <tbody>
-            {filteredData.map((row) => (
-              <React.Fragment key={row.id}>
-                {/* Main Row */}
-                <tr 
-                  className={`border-t border-gray-200 transition-all ${
-                    expandedRowId === row.id 
-                      ? "bg-blue-50" 
-                      : "hover:bg-gray-50"
+            {paginatedData.map((row, idx) => (
+              <React.Fragment key={idx}>
+                {/* MAIN ROW */}
+                <tr
+                  className={`border-b border-slate-800 transition ${
+                    expandedRowId === idx
+                      ? "bg-[#1e293b]"
+                      : "hover:bg-[#1e293b]"
                   }`}
                 >
-                  <td className="p-4 font-medium text-gray-900">{row.id}</td>
-                  <td className="p-4 text-gray-700">{row.name}</td>
-                  <td className="p-4">
-                    <span className="px-2 py-1 rounded-md text-xs font-medium bg-purple-100 text-purple-700">
-                      {row.eventType}
-                    </span>
-                  </td>
-                  <td className="p-4">
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                      row.status === "Active" 
-                        ? "bg-green-100 text-green-700" 
-                        : "bg-red-100 text-red-700"
-                    }`}>
-                      {row.status}
-                    </span>
-                  </td>
-                  <td className="p-4 text-gray-600 text-sm">{row.createdAt}</td>
-                  <td className="p-4">
-                    <Button 
-                      variant="ghost" 
+                  {DEFAULT_COLUMNS.filter((c) => selectedColumns.includes(c.key)).map(
+                    (col) => (
+                      <td
+                        key={col.key}
+                        className={`p-3 text-gray-300 ${
+                          LONG_COLUMNS.includes(col.key)
+                            ? "max-w-xs truncate hover:overflow-visible hover:whitespace-normal hover:bg-gray-700 hover:text-white"
+                            : ""
+                        }`}
+                        title={row[col.key]}
+                      >
+                        {row[col.key]}
+                      </td>
+                    )
+                  )}
+
+                  <td className="p-3">
+                    <Button
+                      variant="ghost"
                       size="icon"
-                      onClick={() => toggleRowExpansion(row.id)}
-                      className="hover:bg-blue-100 transition-colors"
-                      title={expandedRowId === row.id ? "Hide details" : "View details"}
+                      className="text-gray-300 hover:text-white"
+                      onClick={() => toggleRowExpansion(idx)}
                     >
-                      {expandedRowId === row.id ? (
-                        <EyeOff className="h-4 w-4 text-blue-600" />
+                      {expandedRowId === idx ? (
+                        <EyeOff className="h-4 w-4" />
                       ) : (
-                        <Eye className="h-4 w-4 text-gray-600" />
+                        <Eye className="h-4 w-4" />
                       )}
                     </Button>
                   </td>
                 </tr>
 
-                {/* Ultra-Compact Expanded Row (Drawer) */}
-                {expandedRowId === row.id && (
-                  <tr className="bg-blue-50 border-t border-blue-200">
-                    <td colSpan={6} className="p-0">
-                      <div className="p-4 animate-in slide-in-from-top-2 duration-200">
-
-                        {/* Header */}
-                        <div className="flex items-center justify-between mb-3">
-                          <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
-                            <ChevronDown className="h-4 w-4 text-blue-600" />
-                            Row Details
+                {/* EXPANDED DRAWER */}
+                {expandedRowId === idx && (
+                  <tr className="bg-[#1e293b]">
+                    <td colSpan={selectedColumns.length + 1} className="p-0">
+                      <div className="p-4 border-t border-slate-700">
+                        <div className="flex justify-between mb-3">
+                          <h3 className="text-sm font-semibold text-gray-200">
+                            Log Details
                           </h3>
-                          <Button 
-                            variant="outline" 
+                          <Button
+                            variant="outline"
                             size="sm"
+                            className="border-slate-600 text-gray-300"
                             onClick={() => setExpandedRowId(null)}
-                            className="h-7 px-2 text-xs"
                           >
                             Close
                           </Button>
                         </div>
 
-                        {/* Field Grid – Super Compact */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                           {Object.entries(row).map(([key, value]) => (
-                            <div 
-                              key={key} 
-                              className="border border-gray-300 rounded-md px-2 py-1 bg-white"
+                            <div
+                              key={key}
+                              className="border border-slate-700 bg-[#0f172a] rounded p-2"
                             >
-                              <p className="text-[10px] font-semibold text-gray-500 uppercase">
-                                {key.replace(/([A-Z])/g, ' $1').trim()}
+                              <p className="text-[10px] text-slate-400 uppercase">
+                                {key}
                               </p>
-                              <p className="text-[11px] text-gray-900 break-all mt-0.5">
-                                {typeof value === "object"
-                                  ? JSON.stringify(value)
-                                  : String(value)}
+                              <p className="text-[12px] text-gray-300 break-all">
+                                {String(value)}
                               </p>
                             </div>
                           ))}
                         </div>
-
                       </div>
                     </td>
                   </tr>
                 )}
-
-
-
-
               </React.Fragment>
             ))}
           </tbody>
         </table>
-
-
-
-
-        {/* Empty State */}
-        {filteredData.length === 0 && (
-          <div className="text-center py-12 bg-gray-50">
-            <p className="text-gray-500 text-sm">No logs found matching your filters.</p>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => { setSearch(""); setStatus("all"); }}
-              className="mt-4"
-            >
-              Clear Filters
-            </Button>
-          </div>
-        )}
       </div>
 
-      {/* Results Footer */}
-      <div className="flex items-center justify-between text-sm text-gray-600 px-2">
-        <span>
-          Showing <strong>{filteredData.length}</strong> of <strong>{TABLE_DATA.length}</strong> logs
+      {/* Pagination */}
+      <div className="flex justify-center items-center mt-4 gap-3 text-gray-400">
+        <Button
+          onClick={prevPage}
+          disabled={currentPage === 1}
+          variant="ghost"
+          className="px-2 py-1 rounded text-gray-400 hover:bg-gray-700 hover:text-white"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+
+        <span className="px-3 py-1 text-sm font-medium rounded-md bg-gray-700 text-white">
+          {currentPage} / {totalPages}
         </span>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm">Previous</Button>
-          <Button variant="outline" size="sm">Next</Button>
-        </div>
+
+        <Button
+          onClick={nextPage}
+          disabled={currentPage === totalPages}
+          variant="ghost"
+          className="px-2 py-1 rounded text-gray-400 hover:bg-gray-700 hover:text-white"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </Button>
       </div>
+
+      {/* Count text */}
+      <div className="relative w-full">
+        <p className="absolute right-6 bottom-8 text-gray-400 text-sm">
+          Showing{" "}
+          <span className="font-semibold text-white">{paginatedData.length}</span>{" "}
+          of{" "}
+          <span className="font-semibold text-white">{filteredData.length}</span>{" "}
+          filtered logs
+        </p>
+      </div>
+
+      {/* 🔵 Column Config Modal */}
+{/* 🔵 Column Config Modal */}
+{showColumnModal && (
+  <div className="fixed inset-0 bg-black/70 flex justify-center items-center z-50">
+    <div className="bg-[#0f172a] p-6 rounded-lg border border-slate-700 w-96">
+      <h2 className="text-white text-lg mb-4">Select Columns (Max 5)</h2>
+
+      <div className="space-y-3 max-h-80 overflow-y-auto">
+        {DEFAULT_COLUMNS.map((col) => {
+          const isChecked = selectedColumns.includes(col.key);
+          const isDisabled = !isChecked && selectedColumns.length >= 5;
+
+          return (
+            <label
+              key={col.key}
+              className={`flex items-center gap-2 text-gray-300 ${
+                isDisabled ? "opacity-50 cursor-not-allowed" : ""
+              }`}
+            >
+              <input
+                type="checkbox"
+                checked={isChecked}
+                disabled={isDisabled}
+                onChange={() => {
+                  setSelectedColumns((prev) =>
+                    isChecked
+                      ? prev.filter((key) => key !== col.key)
+                      : [...prev, col.key]
+                  );
+                }}
+              />
+              {col.label}
+            </label>
+          );
+        })}
+      </div>
+
+      <div className="flex justify-end mt-5">
+        <Button
+          variant="outline"
+          onClick={() => setShowColumnModal(false)}
+          className="border-slate-600 text-gray-300"
+        >
+          Close
+        </Button>
+      </div>
+    </div>
+  </div>
+)}
+
     </div>
   );
 }

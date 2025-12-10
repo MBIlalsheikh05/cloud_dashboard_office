@@ -1,3 +1,5 @@
+"use client";
+
 import React from 'react';
 import { LogsTable }  from "./components/LogsTable";
 
@@ -18,3 +20,5 @@ export default function LogsPage() {
     </div>
   );
 }
+
+
