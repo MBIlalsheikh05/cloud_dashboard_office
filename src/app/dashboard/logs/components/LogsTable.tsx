@@ -61,7 +61,6 @@ const LONG_COLUMNS = [
   "body",
 ];
 
-
 export function LogsTable() {
   const [tableData, setTableData] = useState<any[]>([]);
   const [search, setSearch] = useState("");
@@ -78,28 +77,23 @@ export function LogsTable() {
       // Default 5 columns to show initially
     const INITIAL_COLUMNS = ["@timestamp", "service", "method", "status_code", "customer_name"];
 
-    const [selectedColumns, setSelectedColumns] = useState<string[]>(() => {
-      // Load from localStorage if exists
-      if (typeof window !== "undefined") {
-        const stored = localStorage.getItem("selectedColumns");
-        if (stored) return JSON.parse(stored);
+    const [selectedColumns, setSelectedColumns] = useState<string[]>([]);
+
+    useEffect(() => {
+      const stored = localStorage.getItem("selectedColumns");
+      if (stored) {
+        setSelectedColumns(JSON.parse(stored));
+      } else {
+        setSelectedColumns(INITIAL_COLUMNS);
       }
-      return INITIAL_COLUMNS;
-    });
+    }, []);
+
 
     // Save changes to localStorage whenever selectedColumns changes
     useEffect(() => {
       localStorage.setItem("selectedColumns", JSON.stringify(selectedColumns));
     }, [selectedColumns]);
-
-
-
-
-
   const [showColumnModal, setShowColumnModal] = useState(false);
-
-
-
 
   // Fetch JSON
   useEffect(() => {
@@ -126,14 +120,14 @@ export function LogsTable() {
     const start = (currentPage - 1) * itemsPerPage;
     return filteredData.slice(start, start + itemsPerPage);
   }, [filteredData, currentPage]);
-
   const nextPage = () => setCurrentPage((p) => Math.min(p + 1, totalPages));
-  const prevPage = () => setCurrentPage((p) => Math.max(p, 1));
+  const prevPage = () => setCurrentPage((p) => Math.max(p - 1, 1));
+
 
   return (
     <div className="space-y-6">
       {/* Filters */}
-      <Card className="bg-[#111827] shadow-md">
+      <Card className="bg-[#111827] shadow-md mx-4">
         <CardContent className="p-4">
           <div className="flex items-center justify-between gap-4">
             <Input
@@ -157,7 +151,10 @@ export function LogsTable() {
       </Card>
 
       {/* Table */}
-      <div className="overflow-auto border border-slate-800 rounded-xl bg-[#0b1120]">
+      {/* <div className="overflow-auto border border-slate-800 rounded-xl bg-[#0b1120]"> */}
+      {/* <div className="overflow-auto border border-slate-800 rounded-xl bg-[#0b1120] px-4"> */}
+      <div className="overflow-auto border border-slate-800 rounded-xl bg-[#0b1120] mx-4">
+
         <table className="w-full text-left">
           <thead className="bg-[#151e33]">
             <tr>
@@ -198,7 +195,6 @@ export function LogsTable() {
                       </td>
                     )
                   )}
-
                   <td className="p-3">
                     <Button
                       variant="ghost"

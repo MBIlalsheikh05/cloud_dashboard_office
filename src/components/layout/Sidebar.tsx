@@ -40,7 +40,7 @@ const Sidebar = () => {
     // Set default sidebar items
     const defaultItems: SidebarItem[] = [
       { name: "Logs", href: "/dashboard/logs", icon: "FileText" },
-      { name: "Audit", href: "/dashboard/audit", icon: "List" },
+      { name: "Files", href: "/dashboard/audit", icon: "List" },
       
       { name: "Settings", href: "/dashboard/settings", icon: "Settings" },
       // { name: "Info", href: "/dashboard/info", icon: "Info" },
