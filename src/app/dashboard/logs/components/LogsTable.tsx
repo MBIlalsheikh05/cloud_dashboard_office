@@ -67,7 +67,7 @@ export function LogsTable() {
   const [status, setStatus] = useState("all");
   const [expandedRowId, setExpandedRowId] = useState<number | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 50;
+  const itemsPerPage = 100;
 
   // 🔵 Column config state
   // const [selectedColumns, setSelectedColumns] = useState<string[]>(
@@ -189,7 +189,7 @@ export function LogsTable() {
                             ? "max-w-xs truncate hover:overflow-visible hover:whitespace-normal hover:bg-gray-700 hover:text-white"
                             : ""
                         }`}
-                        title={row[col.key]}
+                        // title={row[col.key]}
                       >
                         {row[col.key]}
                       </td>
