@@ -2,8 +2,11 @@ import React from 'react'
 import Image from 'next/image'
 import logo from 'vercel.svg'
 
+
 export const Header = () => {
   return (
+
+    
 
     // header color =bg-gray-900\  bg-[#1e1e1e]
         // <="h-full bg-linear-to-b from-gray-900 via-gray-900 to-gray-950 backdrop-blur-md p-6 flex flex-col border-r border-gray-800 shadow-2xl">

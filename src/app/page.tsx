@@ -1,7 +1,5 @@
-import { redirect } from 'next/navigation';
-import OverviewPage from './homepage/page';
+import { redirect } from "next/navigation";
 
-  export default function HomePage()  {
-    // redirect('/dashboard');
-    return <OverviewPage />;
-  }
+export default function IndexPage() {
+  redirect("/login");
+}

@@ -16,9 +16,11 @@ import {
   ShoppingBag,
   ShoppingCart,
   User,
+  LogOut,
 } from "lucide-react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
+import { useSession, signOut } from "next-auth/react";
 
 const ICONS = {
   Home,
@@ -47,6 +49,13 @@ interface SidebarItem {
 const Sidebar = () => {
   const [SidebarItems, setsidebarItems] = useState<SidebarItem[]>([]);
   const pathname = usePathname();
+  const { data: session } = useSession();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    await signOut({ redirect: false });
+    router.push("/login");
+  };
 
   useEffect(() => {
     const defaultItems: SidebarItem[] = [
@@ -97,7 +106,7 @@ const Sidebar = () => {
             </div>
             <div>
               <Link
-                href="/"
+                href="/dashboard"
                 className="focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded"
               >
                 <h1 className="text-xl font-bold text-white tracking-tight hover:text-indigo-400 transition-colors">
@@ -164,13 +173,18 @@ const Sidebar = () => {
 
         {/* Bottom Section */}
         <div className="mt-auto pt-6 border-t border-gray-800">
+          {/* User Profile */}
           <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-gray-800/50 hover:bg-gray-800 transition-colors cursor-pointer group">
             <div className="w-10 h-10 rounded-full bg-linear-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold shadow-lg">
               iQ
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-white truncate">AKSiQ</p>
-              <p className="text-xs text-gray-400 truncate">Admin</p>
+              <p className="text-sm font-medium text-white truncate">
+                AKSiQ
+              </p>
+              <p className="text-xs text-gray-400 truncate capitalize">
+                {session?.user?.role || "User"}
+              </p>
             </div>
             <div className="text-gray-400 group-hover:text-white transition-colors">
               <svg
@@ -188,6 +202,15 @@ const Sidebar = () => {
               </svg>
             </div>
           </div>
+          
+          {/* Logout Button */}
+          <button
+            onClick={handleLogout}
+            className="w-full mt-2 flex items-center gap-3 px-4 py-3 rounded-xl bg-gray-800/50 hover:bg-red-600/20 transition-colors text-gray-300 hover:text-red-400 group"
+          >
+            <LogOut className="w-5 h-5" />
+            <span className="text-sm font-medium">Logout</span>
+          </button>
         </div>
 
       </div>
